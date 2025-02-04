@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Button } from "@/components/ui/button";
 
 
 const geistSans = Geist({
@@ -16,7 +17,7 @@ export default function Home() {
   return (
    <>
   <div className="h-screen flex items-center justify-center">
- 
+ <Button>HI</Button>
 </div>
 </>
   );
