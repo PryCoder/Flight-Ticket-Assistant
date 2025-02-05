@@ -46,7 +46,7 @@ export default function Home() {
     <div className="min-h-screen ">
       {/* Navbar */}
       <nav className="p-4 flex justify-between items-center ">
-      <h1 className="text-xl font-bold text-blue-600 ml-10">Travel Odyssey</h1>
+      <h1 className="text-3xl font-extrabold text-blue-600 ml-10">Travel Odyssey</h1>
 
       <NavigationMenu>
         <NavigationMenuList className="flex space-x-6">
@@ -88,7 +88,7 @@ export default function Home() {
 
       {/* Hero Section with Background Changing Carousel */}
       <header
-  className="text-white rounded-lg bg-cover bg-center transition-all duration-700 h-screen flex items-center mx-auto"
+  className="text-white rounded-3xl bg-cover bg-center transition-all duration-700 h-screen flex items-center mx-auto"
   style={{ 
     backgroundImage: `url(${places[placeIndex].image})`,
     backgroundSize: "cover",
@@ -104,7 +104,7 @@ export default function Home() {
     <p className="mt-4 text-2xl font-light">
       Discover breathtaking destinations and plan your next adventure.
     </p>
-    <Button className="mt-6  px-6 py-7 text-xl bg-white text-black hover:bg-gray-200 rounded-lg">
+    <Button className="mt-6  px-6 py-7 text-xl bg-white text-black hover:bg-gray-200 rounded-lg hover:text-white hover:bg-black">
       Get Started
     </Button>
   </div>
