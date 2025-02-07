@@ -52,7 +52,7 @@ export default function SigninPage() {
               <Button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 transition font-bold py-2 rounded-lg">Sign In</Button>
             </form>
             <p className="mt-6 text-center text-sm text-gray-400">
-              Don't have an account? <a href="#" className="text-blue-400 hover:underline">Sign up</a>
+              Don't have an account? <a href="SignUp" className="text-blue-400 hover:underline">Sign up</a>
             </p>
           </CardContent>
         </Card>
