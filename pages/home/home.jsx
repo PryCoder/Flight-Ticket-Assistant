@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +9,11 @@ import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuT
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectTrigger, SelectContent } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { MapContainer, TileLayer, Marker, Polyline } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+import { FaPlaneDeparture } from "react-icons/fa";
 
 const API_KEY = "79edc6ae47484a5251cd513721dc2f35";
 const places = [
@@ -30,6 +33,41 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [coordinates, setCoordinates] = useState({ from: null, to: null });
+  const [itinerary, setItinerary] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [user, setUser] = useState(null); // Holds user data
+
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.warn("No authentication token found");
+      router.push("/signin"); // Redirect to signin if no token
+      return;
+    }
+  
+    // Fetch user data with the token
+    fetch("http://localhost:5000/user", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then(res => res.json())
+      .then(data => setUser(data))
+      .catch(err => console.error("Error fetching user:", err));
+  }, []);
+  
+  
+  useEffect(() => {
+    const savedItinerary = JSON.parse(localStorage.getItem("itinerary")) || [];
+    setItinerary(savedItinerary);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("itinerary", JSON.stringify(itinerary));
+  }, [itinerary]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,6 +97,7 @@ export default function Home() {
       console.error("Failed to fetch coordinates", err);
     }
   };
+ 
 
   const handleSearch = async () => {
     if (!from || !to) {
@@ -74,7 +113,7 @@ export default function Home() {
       );
       const data = await response.json();
       if (data && data.data) {
-        setFlights(data.data.slice(0, 5));
+        setFlights(data.data.slice(0, 10));
         fetchCoordinates(from, to);
       } else {
         setError("No flights found.");
@@ -85,12 +124,44 @@ export default function Home() {
       setLoading(false);
     }
   };
+  console.log("Flight Data:", flights);
+
+  const formatTime = (timeString, timezone) => {
+    if (!timeString) return "N/A";
+    const date = new Date(timeString);
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: timezone, // Ensures correct local time
+    }).format(date);
+  };
+  
+  const addToItinerary = (flight) => {
+    const newFlight = { ...flight, date: departureDate };
+    setItinerary([...itinerary, newFlight]);
+  };
+
+  const removeFromItinerary = (flightIndex) => {
+    setItinerary(itinerary.filter((_, index) => index !== flightIndex));
+  };
 
   return (
     <div className="min-h-screen">
       <nav className="p-4 flex justify-between items-center">
         <h1 className="text-3xl font-extrabold text-blue-600">Travel Odyssey</h1>
-        <Button>Sign In</Button>
+        <div className="flex items-center gap-2">
+    <Button onClick={() => setIsModalOpen(true)} variant="outline" className="flex items-center mr-5">
+      <FaPlaneDeparture size={20} />
+      Itinerary ({itinerary.length})
+    </Button>
+    {user ? (
+  <span className="text-lg font-semibold text-blue-600">Hi, {user.username}</span>
+) : (
+  <Button>Sign In</Button>
+)}
+
+  </div>
       </nav>
 
       <header className="text-white bg-cover h-screen flex items-center justify-center" style={{ backgroundImage: `url(${places[placeIndex].image})` }}>
@@ -118,25 +189,137 @@ export default function Home() {
         <Button onClick={handleSearch} className="mt-6">Search Flights</Button>
         {loading && <p className="mt-4 text-center">Loading flights...</p>}
         {error && <p className="mt-4 text-center text-red-600">{error}</p>}
-        {coordinates.from && coordinates.to && (
-        <MapContainer center={coordinates.from} zoom={4} className="h-96 w-full mt-6">
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <Marker position={coordinates.from} icon={L.icon({ iconUrl: "/marker-icon.png", iconSize: [25, 41] })} />
-          <Marker position={coordinates.to} icon={L.icon({ iconUrl: "/marker-icon.png", iconSize: [25, 41] })} />
-          <Polyline positions={[coordinates.from, coordinates.to]} color="blue" />
-        </MapContainer>
+       
+{flights.map((flight, index) => (
+  <Card key={index} className="mb-4 p-6 shadow-lg rounded-lg border bg-white">
+    <CardHeader className="flex items-center space-x-4">
+      {/* Airline Logo */}
+      {flight.airline.iata && (
+        <img
+          src={`https://content.airhex.com/content/logos/airlines_${flight.airline.iata}_150_150_s.png`}
+          alt={flight.airline.name}
+          className="w-14 h-14 object-contain bg-gray-100 rounded-lg p-2"
+        />
       )}
+      <div>
+        <CardTitle className="text-xl font-bold">{flight.airline.name}</CardTitle>
+        <p className="text-gray-500">Flight {flight.flight.iata}</p>
+      </div>
+    </CardHeader>
 
-        {flights.map((flight, index) => (
-  <div key={index} className="p-4 border-b">
-    <p className="font-bold">
-      {flight.departure.iata} → {flight.arrival.iata}
-    </p>
-    <p>Flight Number: {flight.flight.iata}</p>
-    <p>Airline: {flight.airline.name}</p>
-    <p>Status: {flight.flight_status}</p>
-  </div>
+    <CardContent className="grid grid-cols-2 gap-4 border-t pt-4">
+      {/* Departure Info */}
+      <div>
+        <p className="text-lg font-semibold text-gray-700">Departure</p>
+        <p className="text-xl font-bold">{flight.departure.iata} ✈️</p>
+        <p className="text-gray-600">{flight.departure.airport}</p>
+        <p className="text-gray-500">📅 {flight.departure.scheduled?.substring(0, 10) || "N/A"}</p>
+        <p className="text-gray-500">⏰ {flight.departure.estimated || flight.departure.actual || flight.departure.scheduled?.substring(11, 16) || "N/A"}</p>
+      </div>
+
+      {/* Arrival Info */}
+      <div>
+        <p className="text-lg font-semibold text-gray-700">Arrival</p>
+        <p className="text-xl font-bold">{flight.arrival.iata} 🛬</p>
+        <p className="text-gray-600">{flight.arrival.airport}</p>
+        <p className="text-gray-500">📅 {flight.arrival.scheduled?.substring(0, 10) || "N/A"}</p>
+        <p className="text-gray-500">⏰ {flight.arrival.estimated || flight.arrival.actual || flight.arrival.scheduled?.substring(11, 16) || "N/A"}</p>
+      </div>
+    </CardContent>
+
+    {/* Status & Actions */}
+    <div className="flex justify-between items-center mt-4 px-6">
+      <Badge
+        className={`text-lg px-4 py-2 rounded-lg ${
+          flight.flight_status === "active"
+            ? "bg-green-500 text-white"
+            : flight.flight_status === "scheduled"
+            ? "bg-blue-500 text-white"
+            : "bg-red-500 text-white"
+        }`}
+      >
+        {flight.flight_status.toUpperCase()}
+      </Badge>
+      <Button variant="outline" className="text-blue-600 border-blue-600">
+        View Details
+      </Button>
+      <Button variant="outline" className="text-blue-600 border-blue-600" onClick={() => addToItinerary(flight)}>
+                Add to Itinerary
+              </Button>
+    </div>
+  </Card>
 ))}
+
+<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>My Itinerary</DialogTitle>
+    </DialogHeader>
+    {itinerary.length === 0 ? (
+      <p className="text-gray-500 text-center">No flights added yet.</p>
+    ) : (
+      itinerary.map((flight, index) => {
+        const { airline, departure, arrival, date, flight: flightInfo } = flight;
+
+        // Convert date to airline-supported format (YYYY-MM-DD)
+        const formattedDate = new Date(date).toISOString().split("T")[0];
+
+        // Airline booking URLs with autofill parameters
+        const airlineBookingUrls = {
+          "6E": `https://book.goindigo.in/?from=${departure.iata}&to=${arrival.iata}&departDate=${formattedDate}&adults=1&children=0&infants=0&tripType=O`,
+          "AA": `https://www.aa.com/booking/find-flights?origin=${departure.iata}&destination=${arrival.iata}&date=${formattedDate}`,
+          "DL": `https://www.delta.com/flight-search/search?origin=${departure.iata}&destination=${arrival.iata}&departureDate=${formattedDate}`,
+          "UA": `https://www.united.com/en-us/book-flight?from=${departure.iata}&to=${arrival.iata}&departDate=${formattedDate}`,
+          "BA": `https://www.britishairways.com/travel/flight-search?from=${departure.iata}&to=${arrival.iata}&departDate=${formattedDate}`,
+          "LH": `https://www.lufthansa.com/booking?from=${departure.iata}&to=${arrival.iata}&departDate=${formattedDate}`,
+          "SQ": `https://www.singaporeair.com/en_UK/plan-and-book/book-a-flight?from=${departure.iata}&to=${arrival.iata}&departureDate=${formattedDate}`,
+          "EK": `https://www.emirates.com/flight-search?departure=${departure.iata}&arrival=${arrival.iata}&departureDate=${formattedDate}`,
+          "QR": `https://www.qatarairways.com/en-us/book/find-flights?from=${departure.iata}&to=${arrival.iata}&departDate=${formattedDate}`,
+          "AI": `https://www.airindia.com/booking?from=${departure.iata}&to=${arrival.iata}&departDate=${formattedDate}`
+        };
+
+        // If airline is supported, use their booking link; otherwise, fallback to Google search
+        const bookingUrl = airlineBookingUrls[airline.iata] 
+          ? airlineBookingUrls[airline.iata] 
+          : `https://www.google.com/search?q=${airline.name}+flight+booking+${departure.iata}+to+${arrival.iata}+${formattedDate}`;
+
+        return (
+          <Card key={index} className="mb-4 p-4 flex items-center gap-4">
+            {/* Airline Logo */}
+            {airline.iata && (
+              <img
+                src={`https://content.airhex.com/content/logos/airlines_${airline.iata}_150_150_s.png`}
+                alt={airline.name}
+                className="w-14 h-14 object-contain bg-gray-100 rounded-lg p-2"
+              />
+            )}
+
+            <div className="flex-1">
+              <p className="font-bold">{airline.name} - {flightInfo.iata}</p>
+              <p>{departure.iata} → {arrival.iata}</p>
+              <p className="text-gray-600">Date: {formattedDate}</p>
+              <div className="mt-2 flex gap-2">
+                <Button variant="destructive" size="sm" onClick={() => removeFromItinerary(index)}>
+                  Remove
+                </Button>
+                <a
+                  href={bookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="default" size="sm">
+                    Buy Tickets
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </Card>
+        );
+      })
+    )}
+  </DialogContent>
+</Dialog>
+
 
       </section>
 
