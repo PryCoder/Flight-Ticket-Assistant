@@ -3,18 +3,22 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FaMapMarkedAlt, FaUtensils, FaHiking, FaLandmark } from "react-icons/fa";
+import { FaMapMarkedAlt, FaUtensils, FaHiking, FaLandmark, FaComments } from "react-icons/fa";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent, NavigationMenuLink } from "@/components/ui/navigation-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectTrigger, SelectContent } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
+import { FaRoute, FaTrain, FaPlane, FaCar } from "react-icons/fa";
+import { Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import BusRoute from './bus'; 
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { FaPlaneDeparture } from "react-icons/fa";
-
+const GEMINI_API_KEY = "AIzaSyAt8rRekvOqmJU6bGkrev24aHiog6ewA0k";
 const API_KEY = "79edc6ae47484a5251cd513721dc2f35";
 const places = [
   { name: "Paris, France", image: "/images/paris.jpg" },
@@ -23,19 +27,25 @@ const places = [
   { name: "New York, USA", image: "/images/nyc.jpg" },
 ];
 
+
 export default function Home() {
+  const [query, setQuery] = useState("");
+  const [route, setRoute] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
   const [placeIndex, setPlaceIndex] = useState(0);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [departureDate, setDepartureDate] = useState("");
   const [flightType, setFlightType] = useState("Economy");
   const [flights, setFlights] = useState([]);
+  const [transportMode, setTransportMode] = useState('Flight');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [coordinates, setCoordinates] = useState({ from: null, to: null });
   const [itinerary, setItinerary] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [user, setUser] = useState(null); // Holds user data
+  const [user, setUser] = useState(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false); // Holds user data
 
 
 
@@ -59,7 +69,11 @@ export default function Home() {
       .catch(err => console.error("Error fetching user:", err));
   }, []);
   
-  
+  const handleAddToItinerary = () => {
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000); // Auto-hide after 3 sec
+  };
+
   useEffect(() => {
     const savedItinerary = JSON.parse(localStorage.getItem("itinerary")) || [];
     setItinerary(savedItinerary);
@@ -76,6 +90,60 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  const testGemini = async () => {
+    if (!query) {
+      alert("Please enter a query (e.g., 'Mumbai to Goa' or 'Best places in Mumbai').");
+      return;
+    }
+    setLoading(true);
+    let promptText = "";
+    
+    // Check if the query is asking about a place or travel route
+    if (query.toLowerCase().includes("best place") || query.toLowerCase().includes("places in")) {
+      promptText = `Suggest the best places to visit in ${query.replace("best place in", "").replace("places in", "").trim()}.
+                    - Consider top-rated attractions based on public reviews.
+                    - Include brief descriptions and why they are popular.
+                    - Mention if they are famous for food, nature, nightlife, or culture.`;
+    } else {
+      promptText = `Find the best available travel route from ${query}.  
+                    - Consider flights, highways, trains, and buses.  
+                    - Provide the best option based on travel time and cost.  
+                    - Give an approximate expense for one person, including tickets and fuel if needed.`;  
+    }
+  
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: promptText }]
+              }
+            ]
+          }),
+        }
+      );
+  
+      const data = await response.json();
+      console.log("Gemini Response:", data);
+  
+      const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 
+                           "Sorry, I couldn't find relevant information at the moment.";
+  
+      setRoute({ recommended: responseText });
+      setLoading(false);
+    } catch (err) {
+      console.error("Gemini API Error:", err);
+      setRoute({ recommended: "Error fetching information. Please try again later." });
+    }
+   
+  };
+  
+     
+  
  
   const fetchCoordinates = async (fromIATA, toIATA) => {
     const geoAPI = (iata) =>
@@ -100,32 +168,48 @@ export default function Home() {
  
 
   const handleSearch = async () => {
-    if (!from || !to) {
-      alert("Please enter both origin and destination.");
+    if (!from || !to || !departureDate) {
+      alert("Please enter origin, destination, and departure date.");
       return;
     }
+    
     setLoading(true);
     setError("");
-    setFlights([]);
+    setFlights([]); // Reset flights state before new search
+    
     try {
-      const response = await fetch(
-        `http://api.aviationstack.com/v1/flights?access_key=${API_KEY}&dep_iata=${from}&arr_iata=${to}`
-      );
-      const data = await response.json();
-      if (data && data.data) {
-        setFlights(data.data.slice(0, 10));
-        fetchCoordinates(from, to);
+      if (transportMode === 'Flight') {
+        // Flight Search
+        const response = await fetch(
+          `http://api.aviationstack.com/v1/flights?access_key=${API_KEY}&dep_iata=${from}&arr_iata=${to}`
+        );
+        const data = await response.json();
+  
+        if (data && data.data) {
+          const filteredFlights = data.data.filter(flight => {
+            const flightDate = flight.departure.scheduled ? flight.departure.scheduled.substring(0, 10) : null;
+            return flightDate === departureDate;
+          });
+  
+          setFlights(filteredFlights.length > 0 ? filteredFlights.slice(0, 10) : []);
+        } else {
+          setError("No flights found.");
+        }
       } else {
-        setError("No flights found.");
+        // Bus Route Search
+        // Here, you can call your BusRoute component's search functionality
+        // Assuming BusRoute uses a similar API to fetch bus routes and display the results
+        setError("Bus search functionality coming soon...");
+        // You can trigger bus-related logic here, or call a similar API like you did for the flights
       }
     } catch (err) {
-      setError("Failed to fetch flights.");
+      setError("Failed to fetch data.");
     } finally {
       setLoading(false);
     }
   };
   console.log("Flight Data:", flights);
-
+  const cleanResponse = (text) => text.replace(/\*/g, ""); 
   const formatTime = (timeString, timezone) => {
     if (!timeString) return "N/A";
     const date = new Date(timeString);
@@ -160,6 +244,71 @@ export default function Home() {
 ) : (
   <Button>Sign In</Button>
 )}
+<Button
+        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700"
+        onClick={() => setIsChatbotOpen(true)}
+      >
+        <FaComments size={24} />
+      </Button>
+      <Dialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen}>
+      <DialogContent className="max-w-2xl w-full p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">AI Travel Assistant</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Input Field */}
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Enter route (e.g., Mumbai to Goa)"
+            className="w-full p-2 border rounded-md"
+          />
+
+          {/* Button */}
+          <Button 
+  onClick={testGemini} 
+  className="w-full flex items-center justify-center gap-2"
+  disabled={loading} // Disable button when loading
+>
+  {loading ? (
+    <span className="flex items-center gap-2">
+      <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+      </svg>
+      Fetching...
+    </span>
+  ) : (
+    "Get Best Travel Info"
+  )}
+</Button>
+
+
+
+
+           {/* Loading Animation */}
+    
+          {/* Error Message */}
+          {error && <p className="text-center text-red-600">{error}</p>}
+
+          {/* Route Recommendation */}
+          {route && (
+            <Card className="mt-2">
+              <CardHeader>
+                <CardTitle className="text-lg">Recommended Travel Option</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-60 overflow-y-auto p-2 border rounded-md">
+                  <p className="whitespace-pre-line">{cleanResponse(route.recommended)}</p>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+
 
   </div>
       </nav>
@@ -172,24 +321,65 @@ export default function Home() {
       </header>
 
       <section className="p-10 bg-white">
-        <h2 className="text-4xl font-bold mb-6 text-center">Search Flights</h2>
-        <div className="flex justify-between gap-6">
-          <Input id="from" value={from} onChange={(e) => setFrom(e.target.value.toUpperCase())} placeholder="From (IATA)" />
-          <Input id="to" value={to} onChange={(e) => setTo(e.target.value.toUpperCase())} placeholder="To (IATA)" />
-          <Input type="date" id="departureDate" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} />
-          <Select value={flightType} onValueChange={setFlightType}>
-            <SelectTrigger>{flightType}</SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Economy">Economy</SelectItem>
-              <SelectItem value="Business">Business</SelectItem>
-              <SelectItem value="First Class">First Class</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={handleSearch} className="mt-6">Search Flights</Button>
+      <div className="mb-6">
+        <label htmlFor="transportMode" className="block text-lg font-semibold text-gray-700 mb-2">Select Transport Mode:</label>
+        <Select value={transportMode} onValueChange={setTransportMode}>
+          <SelectTrigger>{transportMode}</SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Flight">Flight</SelectItem>
+            <SelectItem value="Roadways">Roadways</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {transportMode === 'Flight' && (
+  <div>
+    <h2 className="text-4xl font-bold mb-6 text-center">Search Flights</h2>
+    <div className="flex justify-between gap-6">
+      <div className="w-full">
+        <Input
+          id="from"
+          value={from}
+          onChange={(e) => setFrom(e.target.value.toUpperCase())}
+          placeholder="From (IATA)"
+        />
+      </div>
+      <div className="w-full">
+        <Input
+          id="to"
+          value={to}
+          onChange={(e) => setTo(e.target.value.toUpperCase())}
+          placeholder="To (IATA)"
+        />
+      </div>
+      <div className="w-full">
+        <Input
+          type="date"
+          id="departureDate"
+          value={departureDate}
+          onChange={(e) => setDepartureDate(e.target.value)}
+        />
+      </div>
+    </div>
+    <div className="mb-6">
+      <label htmlFor="flightType" className="block text-lg font-semibold text-gray-700 mb-2">Flight Type:</label>
+      <Select value={flightType} onValueChange={setFlightType}>
+        <SelectTrigger>{flightType}</SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Economy">Economy</SelectItem>
+          <SelectItem value="Business">Business</SelectItem>
+          <SelectItem value="First Class">First Class</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <Button onClick={handleSearch} className="mt-6">Search Flights</Button>
+  </div>
+)}
+
+      {transportMode === 'Roadways' && <BusRoute />}
+
         {loading && <p className="mt-4 text-center">Loading flights...</p>}
         {error && <p className="mt-4 text-center text-red-600">{error}</p>}
-       
+        
 {flights.map((flight, index) => (
   <Card key={index} className="mb-4 p-6 shadow-lg rounded-lg border bg-white">
     <CardHeader className="flex items-center space-x-4">
@@ -243,9 +433,17 @@ export default function Home() {
       <Button variant="outline" className="text-blue-600 border-blue-600">
         View Details
       </Button>
-      <Button variant="outline" className="text-blue-600 border-blue-600" onClick={() => addToItinerary(flight)}>
-                Add to Itinerary
-              </Button>
+      {showAlert && (
+        <Alert className="fixed top-4 right-4 border-green-500 bg-green-100 text-green-700 shadow-lg w-72">
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>Added to your itinerary successfully.</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Single Button */}
+      <Button variant="outline" className="text-blue-600 border-blue-600" onClick={handleAddToItinerary}>
+        Add to Itinerary
+      </Button>
     </div>
   </Card>
 ))}
