@@ -1,31 +1,31 @@
+"use client"; // Ensure this runs only on the client side
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { FcGoogle } from "react-icons/fc";
-import { FaApple, FaGithub } from "react-icons/fa";
-import { useState } from "react";
 
 export default function SignupPage() {
-  const [username, setUsername] = useState(""); // New username state
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const router = useRouter(); // Use Next.js router for navigation
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       const response = await fetch("http://localhost:5000/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }), // Include username
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await response.json();
@@ -34,7 +34,7 @@ export default function SignupPage() {
         throw new Error(data.message || "Signup failed");
       }
 
-      setSuccess("Signup successful! You can now log in.");
+      router.push("/SignIn"); // Redirect to sign-in page after successful signup
     } catch (err) {
       setError(err.message);
     } finally {
@@ -52,66 +52,68 @@ export default function SignupPage() {
       >
         <Card className="rounded-2xl shadow-xl bg-black backdrop-blur-lg text-white p-6 border border-white/20">
           <CardHeader>
-            <CardTitle className="text-center text-3xl font-extrabold">Join Us</CardTitle>
+            <CardTitle className="text-center text-3xl font-extrabold">Create an Account</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col space-y-3">
-              <Button className="w-full flex items-center justify-center gap-2 bg-white text-black">
-                <FcGoogle className="text-xl" /> Sign up with Google
-              </Button>
-              <Button className="w-full flex items-center justify-center gap-2 bg-black text-white">
-                <FaApple className="text-xl" /> Sign up with Apple
-              </Button>
-              <Button className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white">
-                <FaGithub className="text-xl" /> Sign up with GitHub
-              </Button>
-            </div>
-            <div className="my-6 text-center text-gray-400">or</div>
-            
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            {success && <p className="text-green-500 text-sm">{success}</p>}
-            
             <form className="space-y-6" onSubmit={handleSignup}>
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
+              {/* Username Input */}
               <div className="relative">
-                <Label htmlFor="username" className="text-gray-400">Username</Label>
-                <Input 
-                  id="username" 
-                  type="text" 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value)} 
-                  required
+                <Label htmlFor="username" className="text-gray-400 text-sm mb-2 block">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="mt-1 bg-transparent border border-gray-500 rounded-md p-3 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
+              {/* Email Input */}
               <div className="relative">
-                <Label htmlFor="email" className="text-gray-400">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  required
+                <Label htmlFor="email" className="text-gray-400 text-sm mb-2 block">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 bg-transparent border border-gray-500 rounded-md p-3 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
+              {/* Password Input */}
               <div className="relative">
-                <Label htmlFor="password" className="text-gray-400">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  required
+                <Label htmlFor="password" className="text-gray-400 text-sm mb-2 block">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 bg-transparent border border-gray-500 rounded-md p-3 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
+
+              <Button
+                type="submit"
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 transition font-bold py-3 rounded-lg"
+                disabled={loading}
+              >
                 {loading ? "Signing Up..." : "Sign Up"}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-gray-400">
-              Already have an account? <a href="/signin" className="text-blue-400 hover:underline">Sign in</a>
+              Already have an account?{" "}
+              <a href="/signin" className="text-blue-400 hover:underline">
+                Sign in
+              </a>
             </p>
           </CardContent>
         </Card>

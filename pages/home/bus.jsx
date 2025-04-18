@@ -1,22 +1,21 @@
 import { useState } from 'react';
-import { Button } from "@/components/ui/button"; // Custom Button component
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Custom Card component
-import { Badge } from "@/components/ui/badge"; // Custom Badge component
-import { FaMapMarkedAlt, FaHiking } from "react-icons/fa"; // Icons for route and hiking
-import { Input } from "@/components/ui/input"; // Custom Input component
-import { ScrollArea } from "@/components/ui/scroll-area"; // Custom Scroll Area component
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Custom Alert components
-import { Loader2 } from "lucide-react"; // Loading spinner
-import { motion } from "framer-motion"; // Animation library
-import routesData from './route.json'; // Import JSON file from the same folder
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import routesData from './route.json';
+import jsPDF from "jspdf"; // <--- Added import
 
 const BusRoute = () => {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [routeDetails, setRouteDetails] = useState(null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // State to handle loading
-  const [busAnimation, setBusAnimation] = useState(false); // State for bus animation trigger
+  const [loading, setLoading] = useState(false);
+  const [busAnimation, setBusAnimation] = useState(false);
 
   const handleSearch = () => {
     setLoading(true);
@@ -27,7 +26,7 @@ const BusRoute = () => {
     let totalTime = '';
     let stopsBetween = [];
 
-    setTimeout(() => {  // Simulate API call delay
+    setTimeout(() => {
       for (const route of routes) {
         const stops = route.route.stops;
         const fromStop = from.toLowerCase();
@@ -38,9 +37,9 @@ const BusRoute = () => {
 
         if (fromIndex >= 0 && toIndex >= 0 && fromIndex < toIndex) {
           foundRoute = route;
-          stopsBetween = stops.slice(fromIndex + 1, toIndex); // Excluding the 'from' and 'to' stops
+          stopsBetween = stops.slice(fromIndex + 1, toIndex);
           totalPrice = parseInt(stops[toIndex].price_in_inr) - parseInt(stops[fromIndex].price_in_inr);
-          totalTime = stops[fromIndex].arrival_times[0]; // Arrival time of the 'from' stop
+          totalTime = stops[fromIndex].arrival_times[0];
           break;
         }
       }
@@ -53,14 +52,68 @@ const BusRoute = () => {
           time: totalTime,
           stops: stopsBetween,
         });
-        setBusAnimation(true); // Trigger bus animation when route is found
+        setBusAnimation(true);
       } else {
         setRouteDetails(null);
         setError('No route found between the given stops.');
       }
 
-      setLoading(false); // Hide loading spinner after search
-    }, 1500); // Simulating a delay for API call
+      setLoading(false);
+    }, 1500);
+  };
+
+  // 🔽 Generate PDF Ticket styled like a real-world bus ticket
+  const generateBusTicketPDF = () => {
+    const doc = new jsPDF();
+
+    // Set up fonts and styles for the ticket
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+
+    // Create a border for the ticket
+    doc.setLineWidth(1);
+    doc.rect(10, 10, 190, 277); // Full ticket border
+
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(0, 102, 204);
+    doc.text("Travel Odyssey", 105, 25, { align: "center" });
+    doc.setFontSize(14);
+    doc.setTextColor(50);
+
+    // Ticket Details
+    doc.text(`Passenger: Guest User`, 20, 40);
+    doc.text(`From: ${from}`, 20, 55);
+    doc.text(`To: ${to}`, 20, 70);
+    doc.text(`Bus No: ${routeDetails.busNumber}`, 20, 85);
+    doc.text(`Company: ${routeDetails.companyName}`, 20, 100);
+    doc.text(`Departure Time: ${routeDetails.time}`, 20, 115);
+    doc.text(`Amount Paid: ₹${routeDetails.price}`, 20, 130);
+
+    // Dividing Line
+    doc.setLineWidth(0.5);
+    doc.line(10, 135, 200, 135); // A horizontal line
+
+    // Additional information
+    doc.setFontSize(12);
+    doc.text("Important Information", 20, 150);
+    doc.text("Ensure you carry a valid ID while traveling.", 20, 160);
+    doc.text("This ticket is valid for the stated journey only.", 20, 170);
+
+    // Footer
+    const footerMsg = "Thank you for choosing Travel Odyssey 🚌";
+    const textWidth = doc.getTextWidth(footerMsg);
+    const boxWidth = textWidth + 20;
+    const boxX = (210 - boxWidth) / 2;
+
+    doc.setFillColor(0, 102, 204);
+    doc.rect(boxX, 250, boxWidth, 15, "F");
+    doc.setTextColor(255);
+    doc.setFontSize(10);
+    doc.text(footerMsg, 105, 260, { align: "center" });
+
+    // Save the PDF
+    doc.save(`Bus_Ticket_${from}_to_${to}.pdf`);
   };
 
   return (
@@ -73,7 +126,7 @@ const BusRoute = () => {
           id="from"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
-          className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-green-500"
+          className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-green-500 text-black"
           placeholder="Enter your starting point"
         />
       </div>
@@ -84,7 +137,7 @@ const BusRoute = () => {
           id="to"
           value={to}
           onChange={(e) => setTo(e.target.value)}
-          className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-green-500"
+          className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-green-500 text-black"
           placeholder="Enter your destination"
         />
       </div>
@@ -126,13 +179,12 @@ const BusRoute = () => {
                 </div>
                 <div className="space-y-2">
                   <p className="text-lg font-semibold text-gray-700">Arrival</p>
-                  <p className="text-xl font-bold text-green-600">{to}🚌 </p>
+                  <p className="text-xl font-bold text-green-600">{to} 🚌</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Stops in Between */}
           {routeDetails.stops && routeDetails.stops.length > 0 && (
             <div className="mt-6">
               <h4 className="text-lg font-semibold text-gray-700">Stops Along the Way:</h4>
@@ -147,15 +199,14 @@ const BusRoute = () => {
           )}
 
           <Button
-            onClick={() => alert('Added to your itinerary!')}
-            className="w-full p-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-300"
+            onClick={generateBusTicketPDF}
+            className="w-full p-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-300 mt-6"
           >
-            Add to Itinerary
+            Book Bus Ticket
           </Button>
         </div>
       )}
 
-      {/* Bus Animation */}
       {busAnimation && (
         <motion.img
           src="https://pngpix.com/images/hd/city-line-bus-png-moi-6vo19us7cjbegu12.jpg"

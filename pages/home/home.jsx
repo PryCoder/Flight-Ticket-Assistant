@@ -14,21 +14,25 @@ import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import BusRoute from './bus'; 
+import BookTicket from "./bookticket";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { FaPlaneDeparture } from "react-icons/fa";
 const GEMINI_API_KEY = "AIzaSyAt8rRekvOqmJU6bGkrev24aHiog6ewA0k";
-const API_KEY = "79edc6ae47484a5251cd513721dc2f35";
+const API_KEY = "6b487b85c5678305a4528775fe69121c";
 const places = [
   { name: "Paris, France", image: "/images/paris.jpg" },
   { name: "Santorini, Greece", image: "/images/santorini.jpg" },
   { name: "Kyoto, Japan", image: "/images/kyoto.jpg" },
-  { name: "New York, USA", image: "/images/nyc.jpg" },
+  { name: "New York, USA", image: "/images/ny.jpg" },
 ];
 
 
 export default function Home() {
+  const [selectedFlight, setSelectedFlight] = useState(null);
+const [showBooking, setShowBooking] = useState(false);
+
   const [query, setQuery] = useState("");
   const [route, setRoute] = useState(null);
   const [showAlert, setShowAlert] = useState(false);
@@ -69,10 +73,7 @@ export default function Home() {
       .catch(err => console.error("Error fetching user:", err));
   }, []);
   
-  const handleAddToItinerary = () => {
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 3000); // Auto-hide after 3 sec
-  };
+  
 
   useEffect(() => {
     const savedItinerary = JSON.parse(localStorage.getItem("itinerary")) || [];
@@ -221,9 +222,14 @@ export default function Home() {
     }).format(date);
   };
   
-  const addToItinerary = (flight) => {
+  const handleAddToItinerary = (flight) => {
+    // Add the flight to the itinerary
     const newFlight = { ...flight, date: departureDate };
     setItinerary([...itinerary, newFlight]);
+  
+    // Show success alert
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000); // Auto-hide after 3 sec
   };
 
   const removeFromItinerary = (flightIndex) => {
@@ -321,19 +327,21 @@ export default function Home() {
       </header>
 
       <section className="p-10 bg-white">
-      <div className="mb-6">
+      <div className="mb-6 text-black">
         <label htmlFor="transportMode" className="block text-lg font-semibold text-gray-700 mb-2">Select Transport Mode:</label>
-        <Select value={transportMode} onValueChange={setTransportMode}>
+        <Select value={transportMode} onValueChange={setTransportMode} className="text-gray-900">
           <SelectTrigger>{transportMode}</SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Flight">Flight</SelectItem>
-            <SelectItem value="Roadways">Roadways</SelectItem>
+          <SelectContent >
+          <SelectItem value="Flight" style={{ color: 'black' }}>Flight</SelectItem>
+<SelectItem value="Roadways" style={{ color: 'black' }}>Roadways</SelectItem>
+
+
           </SelectContent>
         </Select>
       </div>
       {transportMode === 'Flight' && (
-  <div>
-    <h2 className="text-4xl font-bold mb-6 text-center">Search Flights</h2>
+  <div className="text-black">
+    <h2 className="text-4xl font-bold mb-6 text-center text-black">Search Flights</h2>
     <div className="flex justify-between gap-6">
       <div className="w-full">
         <Input
@@ -430,9 +438,30 @@ export default function Home() {
       >
         {flight.flight_status.toUpperCase()}
       </Badge>
-      <Button variant="outline" className="text-blue-600 border-blue-600">
-        View Details
-      </Button>
+      <Button
+  variant="outline"
+  className="text-blue-600 border-blue-600"
+  onClick={() => {
+    setSelectedFlight(flight);
+    setShowBooking(true);
+  }}
+>
+  View Details
+</Button>
+{showBooking && selectedFlight && (
+  <Dialog open={showBooking} onOpenChange={setShowBooking}>
+    <DialogContent>
+      <BookTicket
+        flight={selectedFlight}
+        onClose={() => {
+          setShowBooking(false);
+          setSelectedFlight(null);
+        }}
+      />
+    </DialogContent>
+  </Dialog>
+)}
+
       {showAlert && (
         <Alert className="fixed top-4 right-4 border-green-500 bg-green-100 text-green-700 shadow-lg w-72">
           <AlertTitle>Success!</AlertTitle>
@@ -441,7 +470,7 @@ export default function Home() {
       )}
 
       {/* Single Button */}
-      <Button variant="outline" className="text-blue-600 border-blue-600" onClick={handleAddToItinerary}>
+      <Button variant="outline" className="text-blue-600 border-blue-600" onClick={() => handleAddToItinerary(flight)}>
         Add to Itinerary
       </Button>
     </div>
