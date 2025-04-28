@@ -8,33 +8,56 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 
+<<<<<<< HEAD
 export default function SigninPage() {
+=======
+export default function SignupPage() {
+  const [username, setUsername] = useState("");
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter(); // Use Next.js router for navigation
 
+<<<<<<< HEAD
   const handleSignin = async (e) => {
+=======
+  const handleSignup = async (e) => {
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+<<<<<<< HEAD
       const response = await fetch("http://localhost:5000/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+=======
+      const response = await fetch("http://localhost:5000/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password }),
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+<<<<<<< HEAD
         throw new Error(data.message || "Signin failed");
       }
 
       localStorage.setItem("token", data.token); // Store token in localStorage
       router.push("/home"); // Redirect to home page after successful sign-in
+=======
+        throw new Error(data.message || "Signup failed");
+      }
+
+      router.push("/SignIn"); // Redirect to sign-in page after successful signup
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
     } catch (err) {
       setError(err.message);
     } finally {
@@ -52,6 +75,7 @@ export default function SigninPage() {
       >
         <Card className="rounded-2xl shadow-xl bg-black backdrop-blur-lg text-white p-6 border border-white/20">
           <CardHeader>
+<<<<<<< HEAD
             <CardTitle className="text-center text-3xl font-extrabold">Welcome Back</CardTitle>
           </CardHeader>
           <CardContent>
@@ -64,6 +88,31 @@ export default function SigninPage() {
                   htmlFor="email"
                   className="text-gray-400 text-sm mb-2 block"
                 >
+=======
+            <CardTitle className="text-center text-3xl font-extrabold">Create an Account</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-6" onSubmit={handleSignup}>
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
+              {/* Username Input */}
+              <div className="relative">
+                <Label htmlFor="username" className="text-gray-400 text-sm mb-2 block">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="mt-1 bg-transparent border border-gray-500 rounded-md p-3 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Email Input */}
+              <div className="relative">
+                <Label htmlFor="email" className="text-gray-400 text-sm mb-2 block">
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
                   Email
                 </Label>
                 <Input
@@ -77,10 +126,14 @@ export default function SigninPage() {
 
               {/* Password Input */}
               <div className="relative">
+<<<<<<< HEAD
                 <Label
                   htmlFor="password"
                   className="text-gray-400 text-sm mb-2 block"
                 >
+=======
+                <Label htmlFor="password" className="text-gray-400 text-sm mb-2 block">
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
                   Password
                 </Label>
                 <Input
@@ -97,14 +150,24 @@ export default function SigninPage() {
                 className="w-full mt-4 bg-blue-600 hover:bg-blue-700 transition font-bold py-3 rounded-lg"
                 disabled={loading}
               >
+<<<<<<< HEAD
                 {loading ? "Signing In..." : "Sign In"}
+=======
+                {loading ? "Signing Up..." : "Sign Up"}
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-gray-400">
+<<<<<<< HEAD
               Don't have an account?{" "}
               <a href="/signup" className="text-blue-400 hover:underline">
                 Sign up
+=======
+              Already have an account?{" "}
+              <a href="/signin" className="text-blue-400 hover:underline">
+                Sign in
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
               </a>
             </p>
           </CardContent>

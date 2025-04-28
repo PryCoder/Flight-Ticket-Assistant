@@ -13,21 +13,36 @@ import { FaRoute, FaTrain, FaPlane, FaCar } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+<<<<<<< HEAD
+=======
+import BusRoute from './bus'; 
+import BookTicket from "./bookticket";
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { FaPlaneDeparture } from "react-icons/fa";
 const GEMINI_API_KEY = "AIzaSyAt8rRekvOqmJU6bGkrev24aHiog6ewA0k";
+<<<<<<< HEAD
 const API_KEY = "79edc6ae47484a5251cd513721dc2f35";
+=======
+const API_KEY = "6b487b85c5678305a4528775fe69121c";
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
 const places = [
   { name: "Paris, France", image: "/images/paris.jpg" },
   { name: "Santorini, Greece", image: "/images/santorini.jpg" },
   { name: "Kyoto, Japan", image: "/images/kyoto.jpg" },
-  { name: "New York, USA", image: "/images/nyc.jpg" },
+  { name: "New York, USA", image: "/images/ny.jpg" },
 ];
 
 
 export default function Home() {
+<<<<<<< HEAD
+=======
+  const [selectedFlight, setSelectedFlight] = useState(null);
+const [showBooking, setShowBooking] = useState(false);
+
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
   const [query, setQuery] = useState("");
   const [route, setRoute] = useState(null);
   const [showAlert, setShowAlert] = useState(false);
@@ -37,6 +52,7 @@ export default function Home() {
   const [departureDate, setDepartureDate] = useState("");
   const [flightType, setFlightType] = useState("Economy");
   const [flights, setFlights] = useState([]);
+  const [transportMode, setTransportMode] = useState('Flight');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [coordinates, setCoordinates] = useState({ from: null, to: null });
@@ -67,10 +83,14 @@ export default function Home() {
       .catch(err => console.error("Error fetching user:", err));
   }, []);
   
+<<<<<<< HEAD
   const handleAddToItinerary = () => {
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 3000); // Auto-hide after 3 sec
   };
+=======
+  
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
 
   useEffect(() => {
     const savedItinerary = JSON.parse(localStorage.getItem("itinerary")) || [];
@@ -173,6 +193,7 @@ export default function Home() {
     
     setLoading(true);
     setError("");
+<<<<<<< HEAD
     setFlights([]);
     
     try {
@@ -189,11 +210,37 @@ export default function Home() {
   
         setFlights(filteredFlights.length > 0 ? filteredFlights.slice(0, 10) : []);
         fetchCoordinates(from, to);
+=======
+    setFlights([]); // Reset flights state before new search
+    
+    try {
+      if (transportMode === 'Flight') {
+        // Flight Search
+        const response = await fetch(
+          `http://api.aviationstack.com/v1/flights?access_key=${API_KEY}&dep_iata=${from}&arr_iata=${to}`
+        );
+        const data = await response.json();
+  
+        if (data && data.data) {
+          const filteredFlights = data.data.filter(flight => {
+            const flightDate = flight.departure.scheduled ? flight.departure.scheduled.substring(0, 10) : null;
+            return flightDate === departureDate;
+          });
+  
+          setFlights(filteredFlights.length > 0 ? filteredFlights.slice(0, 10) : []);
+        } else {
+          setError("No flights found.");
+        }
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
       } else {
-        setError("No flights found.");
+        // Bus Route Search
+        // Here, you can call your BusRoute component's search functionality
+        // Assuming BusRoute uses a similar API to fetch bus routes and display the results
+        setError("Bus search functionality coming soon...");
+        // You can trigger bus-related logic here, or call a similar API like you did for the flights
       }
     } catch (err) {
-      setError("Failed to fetch flights.");
+      setError("Failed to fetch data.");
     } finally {
       setLoading(false);
     }
@@ -212,9 +259,14 @@ export default function Home() {
     }).format(date);
   };
   
-  const addToItinerary = (flight) => {
+  const handleAddToItinerary = (flight) => {
+    // Add the flight to the itinerary
     const newFlight = { ...flight, date: departureDate };
     setItinerary([...itinerary, newFlight]);
+  
+    // Show success alert
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000); // Auto-hide after 3 sec
   };
 
   const removeFromItinerary = (flightIndex) => {
@@ -312,24 +364,67 @@ export default function Home() {
       </header>
 
       <section className="p-10 bg-white">
-        <h2 className="text-4xl font-bold mb-6 text-center">Search Flights</h2>
-        <div className="flex justify-between gap-6">
-          <Input id="from" value={from} onChange={(e) => setFrom(e.target.value.toUpperCase())} placeholder="From (IATA)" />
-          <Input id="to" value={to} onChange={(e) => setTo(e.target.value.toUpperCase())} placeholder="To (IATA)" />
-          <Input type="date" id="departureDate" value={departureDate} onChange={(e) => setDepartureDate(e.target.value)} />
-          <Select value={flightType} onValueChange={setFlightType}>
-            <SelectTrigger>{flightType}</SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Economy">Economy</SelectItem>
-              <SelectItem value="Business">Business</SelectItem>
-              <SelectItem value="First Class">First Class</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={handleSearch} className="mt-6">Search Flights</Button>
+      <div className="mb-6 text-black">
+        <label htmlFor="transportMode" className="block text-lg font-semibold text-gray-700 mb-2">Select Transport Mode:</label>
+        <Select value={transportMode} onValueChange={setTransportMode} className="text-gray-900">
+          <SelectTrigger>{transportMode}</SelectTrigger>
+          <SelectContent >
+          <SelectItem value="Flight" style={{ color: 'black' }}>Flight</SelectItem>
+<SelectItem value="Roadways" style={{ color: 'black' }}>Roadways</SelectItem>
+
+
+          </SelectContent>
+        </Select>
+      </div>
+      {transportMode === 'Flight' && (
+  <div className="text-black">
+    <h2 className="text-4xl font-bold mb-6 text-center text-black">Search Flights</h2>
+    <div className="flex justify-between gap-6">
+      <div className="w-full">
+        <Input
+          id="from"
+          value={from}
+          onChange={(e) => setFrom(e.target.value.toUpperCase())}
+          placeholder="From (IATA)"
+        />
+      </div>
+      <div className="w-full">
+        <Input
+          id="to"
+          value={to}
+          onChange={(e) => setTo(e.target.value.toUpperCase())}
+          placeholder="To (IATA)"
+        />
+      </div>
+      <div className="w-full">
+        <Input
+          type="date"
+          id="departureDate"
+          value={departureDate}
+          onChange={(e) => setDepartureDate(e.target.value)}
+        />
+      </div>
+    </div>
+    <div className="mb-6">
+      <label htmlFor="flightType" className="block text-lg font-semibold text-gray-700 mb-2">Flight Type:</label>
+      <Select value={flightType} onValueChange={setFlightType}>
+        <SelectTrigger>{flightType}</SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Economy">Economy</SelectItem>
+          <SelectItem value="Business">Business</SelectItem>
+          <SelectItem value="First Class">First Class</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+    <Button onClick={handleSearch} className="mt-6">Search Flights</Button>
+  </div>
+)}
+
+      {transportMode === 'Roadways' && <BusRoute />}
+
         {loading && <p className="mt-4 text-center">Loading flights...</p>}
         {error && <p className="mt-4 text-center text-red-600">{error}</p>}
-       
+        
 {flights.map((flight, index) => (
   <Card key={index} className="mb-4 p-6 shadow-lg rounded-lg border bg-white">
     <CardHeader className="flex items-center space-x-4">
@@ -380,9 +475,42 @@ export default function Home() {
       >
         {flight.flight_status.toUpperCase()}
       </Badge>
-      <Button variant="outline" className="text-blue-600 border-blue-600">
-        View Details
+      <Button
+  variant="outline"
+  className="text-blue-600 border-blue-600"
+  onClick={() => {
+    setSelectedFlight(flight);
+    setShowBooking(true);
+  }}
+>
+  View Details
+</Button>
+{showBooking && selectedFlight && (
+  <Dialog open={showBooking} onOpenChange={setShowBooking}>
+    <DialogContent>
+      <BookTicket
+        flight={selectedFlight}
+        onClose={() => {
+          setShowBooking(false);
+          setSelectedFlight(null);
+        }}
+      />
+    </DialogContent>
+  </Dialog>
+)}
+
+      {showAlert && (
+        <Alert className="fixed top-4 right-4 border-green-500 bg-green-100 text-green-700 shadow-lg w-72">
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>Added to your itinerary successfully.</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Single Button */}
+      <Button variant="outline" className="text-blue-600 border-blue-600" onClick={() => handleAddToItinerary(flight)}>
+        Add to Itinerary
       </Button>
+<<<<<<< HEAD
       {showAlert && (
         <Alert className="fixed top-4 right-4 border-green-500 bg-green-100 text-green-700 shadow-lg w-72">
           <AlertTitle>Success!</AlertTitle>
@@ -394,6 +522,8 @@ export default function Home() {
       <Button variant="outline" className="text-blue-600 border-blue-600" onClick={handleAddToItinerary}>
         Add to Itinerary
       </Button>
+=======
+>>>>>>> 20cb37df65ea6e5cdba4523184871ae61181d6d8
     </div>
   </Card>
 ))}
